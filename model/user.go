@@ -30,9 +30,10 @@ type DeleteUser struct {
 }
 
 type UpdateUser struct {
-	UserId   string `json:"userId"`
-	UserName string `json:"userName"`
-	Password string `json:"password"`
+	UserId     string `json:"userId"`
+	UserName   string `json:"userName"`
+	Password   string `json:"newPassword"`
+	NewAddress string `json:"newAddress"`
 }
 
 type GetAllUser struct {
@@ -42,6 +43,7 @@ type GetAllUser struct {
 }
 
 type SearchUser struct {
-	Search string `json:"searchName"`
-	Page   int    `json:"page"`
+	Search   string `json:"searchName"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"pageSize"`
 }

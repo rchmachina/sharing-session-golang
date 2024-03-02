@@ -49,7 +49,7 @@ func main() {
 
 	// Test repository
 	testRepositoryUser := repositories.RepositoryUser(db)
-	testRepositoryUser.CreateUserJson(modelTesting)
+	testRepositoryUser.CreateUserDb(modelTesting)
 
 	// Initialize routes
 	routes.RouteInit(r.Group("/api/V1"))

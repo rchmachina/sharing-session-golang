@@ -2,16 +2,11 @@ package helper
 
 import (
 	"encoding/json"
-
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 )
 
-
-func JSONResponse(c echo.Context, statusCode int, msg interface{}) error {
-	
-	return c.JSON(statusCode, map[string]interface{}{
-		"message": msg,
-	})
+func JSONResponse(c *gin.Context, statusCode int, msg interface{}) {
+	c.JSON(statusCode, gin.H{"message": msg})
 }
 
 func ToJSON(v interface{}) string {

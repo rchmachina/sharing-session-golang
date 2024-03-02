@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,7 @@ import (
 	"github.com/rchmachina/sharing-session-golang/model"
 	"github.com/rchmachina/sharing-session-golang/repositories"
 	. "github.com/rchmachina/sharing-session-golang/utils/bcrypt"
+	"github.com/rchmachina/sharing-session-golang/utils/helper"
 	jwtToken "github.com/rchmachina/sharing-session-golang/utils/jwt"
 )
 
@@ -27,9 +29,7 @@ func (u *userHandler) CreateUser(c *gin.Context) {
 	userData := new(model.CreateUser)
 
 	if err := c.Bind(userData); err != nil {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: err.Error(),
-		})
+		helper.JSONResponse(c, 400, err.Error())
 		return
 	}
 
@@ -54,9 +54,11 @@ func (u *userHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"Data": fmt.Sprintf("registration successful for username %s", userData.UserName),
-	})
+	if err != nil {
+		helper.JSONResponse(c, 200, fmt.Sprintf("registration successful for username %s", userData.UserName))
+		return
+	}
+
 }
 
 func (u *userHandler) LoginUser(c *gin.Context) {
@@ -70,17 +72,13 @@ func (u *userHandler) LoginUser(c *gin.Context) {
 
 	user, err := u.UserRepository.LoginUserDB(checkAuth.UserName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: "credential is wrong",
-		})
+		helper.JSONResponse(c, 401, "no user found")
 		return
 	}
 
 	isValid := CheckPasswordHash(checkAuth.Password, user.Password)
 	if !isValid {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: "credential is wrong",
-		})
+		helper.JSONResponse(c, 401, "credential is wrong")
 		return
 	}
 
@@ -88,96 +86,94 @@ func (u *userHandler) LoginUser(c *gin.Context) {
 	user.Expired = expiredTime
 
 	claims := jwt.MapClaims{
-		"id":      user.UserId,
+		"id":       user.UserId,
 		"userName": user.UserName,
-		"roles":   user.Roles,
-		"expiry":  user.Expired,
+		"roles":    user.Roles,
+		"expiry":   user.Expired,
 	}
 
 	token, errGenerateToken := jwtToken.GenerateToken(&claims)
 	if errGenerateToken != nil {
 		log.Println(errGenerateToken)
-		c.AbortWithStatus(http.StatusUnauthorized)
+		helper.JSONResponse(c, 401, errGenerateToken)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	returnData := map[string]interface{}{
 		"userName": user.UserName,
 		"roles":    user.Roles,
 		"userId":   user.UserId,
 		"token":    token,
 		"expiry":   user.Expired,
-	})
+	}
+
+	helper.JSONResponse(c, 200, returnData)
 }
 
 func (u *userHandler) DeleteUser(c *gin.Context) {
 	id := c.Param("id")
 
-	isDeleted, err := u.UserRepository.DeleteUserDb(id)
+	err := u.UserRepository.DeleteUserDb(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: "there is something wrong",
-		})
+		helper.JSONResponse(c, 400, "there is something wrong")
 		return
 	}
 
-	if !isDeleted {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: "there is something wrong",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, model.Response{
-		Message: "success deleting user!",
-	})
+	helper.JSONResponse(c, 200, "success deleting user!")
 }
 
 func (u *userHandler) UpdateUser(c *gin.Context) {
 	updateUser := new(model.UpdateUser)
 	if err := c.Bind(updateUser); err != nil {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: err.Error(),
-		})
+		helper.JSONResponse(c, 400, err.Error())
 		return
 	}
 
 	if updateUser.Password != "" {
 		hashedPassword, err := HashingPassword(updateUser.Password)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, model.Response{
-				Message: "Failed to hash password",
-			})
+			log.Println("update user err:", err)
+			helper.JSONResponse(c, 500, "Failed to hash password")
 			return
 		}
 		updateUser.Password = hashedPassword
 	}
 
-	isUpdated, err := u.UserRepository.UpdateUserDb(*updateUser)
+	err := u.UserRepository.UpdateUserDb(*updateUser)
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: "there is something wrong",
-		})
+		log.Println("update user err:", err)
+		helper.JSONResponse(c, 500, "there is something wrong")
 		return
 	}
 
-	if !isUpdated {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: "there is something wrong",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"Message": "success updating user!" + updateUser.UserName,
-	})
+	helper.JSONResponse(c, 200, fmt.Sprintf("success updating user %s", updateUser.UserName))
 }
 
 func (u *userHandler) GetAllUser(c *gin.Context) {
-	page := c.Query("page")
 	search := c.Query("search")
+	page := c.Query("page")
+	pageInt, err := strconv.Atoi(page)
+	if err != nil {
+		log.Println("get all user err:", err)
+		helper.JSONResponse(c, 400, "wrong request")
+		return
+	}
+	pageSize := c.Query("pageSize")
+	pageSizeInt, err := strconv.Atoi(pageSize)
+	if err != nil {
+		log.Println("get all user err:", err)
+		helper.JSONResponse(c, 400, "wrong request")
+		return
+	}
 
-	getAllUser := u.UserRepository.GetAllUserDb(search, page)
+	searchGetAllUser := model.SearchUser{
+		Page: pageInt,
+		PageSize: pageSizeInt,
+		Search : search,
+	}
+
+	getAllUser := u.UserRepository.GetAllUserDb(searchGetAllUser)
 
 	c.JSON(http.StatusOK, getAllUser)
 }
