@@ -23,10 +23,16 @@ type CreateUser struct {
 	UserName       string `json:"userName"`
 	HashedPassword string `json:"password"`
 	Roles          string `json:"roles"`
+	Address        string `json:"address"`
 }
 
 type DeleteUser struct {
 	UserId string `json:"userId"`
+}
+
+type SetAndUpdateResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 type UpdateUser struct {
@@ -37,13 +43,13 @@ type UpdateUser struct {
 }
 
 type GetAllUser struct {
-	Data      interface{} `json:"data"`
-	TotalPage int         `json:"totalPage"`
-	Page      int         `json:"page"`
+	GetUserData  []interface{} `json:"getUserData"`
+	TotalRecords int           `json:"TotalRecords"`
+	Page         int           `json:"page"`
 }
 
 type SearchUser struct {
-	Search   string `json:"searchName"`
+	Search   string `json:"searchQuery"`
 	Page     int    `json:"page"`
 	PageSize int    `json:"pageSize"`
 }

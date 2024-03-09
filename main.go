@@ -1,17 +1,17 @@
 package main
 
 import (
+
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+
+	routes "github.com/rchmachina/sharing-session-golang/route"
+	"github.com/rchmachina/sharing-session-golang/utils/database"
+	flags "github.com/rchmachina/sharing-session-golang/utils/flag"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	"github.com/rchmachina/sharing-session-golang/model"
-	"github.com/rchmachina/sharing-session-golang/repositories"
-	routes "github.com/rchmachina/sharing-session-golang/route"
-	"github.com/rchmachina/sharing-session-golang/utils/database"
 )
 
 func main() {
@@ -36,28 +36,21 @@ func main() {
 		c.Next()
 	})
 
-	// Connect to the database
-	db := database.DatabaseConnection()
+	// check connection to  database
+	_ = database.DatabaseConnection()
 	fmt.Println("Connected to database")
+	flags.MigrationFlags()
 
-	// Test model data
-	modelTesting := model.CreateUser{
-		UserName:       "testing json1",
-		HashedPassword: "dwaarrr",
-		Roles: "mimin2",
-	}
 
-	// Test repository
-	testRepositoryUser := repositories.RepositoryUser(db)
-	testRepositoryUser.CreateUserDb(modelTesting)
 
 	// Initialize routes
-	routes.RouteInit(r.Group("/api/V1"))
+	APIVersion := os.Getenv("API_VERSION")
+	routes.RouteInit(r.Group(APIVersion))
 
 	// Start the server
 	port := os.Getenv("PORT")
 	fmt.Println("Server running on localhost:", port)
-	if err := r.Run( port); err != nil {
+	if err := r.Run(port); err != nil {
 		log.Fatal(err)
 	}
 }

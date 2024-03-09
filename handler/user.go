@@ -48,20 +48,19 @@ func (u *userHandler) CreateUser(c *gin.Context) {
 
 	err = u.UserRepository.CreateUserDb(*userData)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, model.Response{
-			Message: err.Error(),
-		})
+		helper.JSONResponse(c, 200, err.Error())
 		return
 	}
 
-	if err != nil {
-		helper.JSONResponse(c, 200, fmt.Sprintf("registration successful for username %s", userData.UserName))
-		return
+	resp := model.Response{
+		Message: fmt.Sprintf("registration successful for username %s", userData.UserName),
+		Status: "success",
 	}
-
+	
+	helper.JSONResponse(c, 200, resp)
 }
 
-func (u *userHandler) LoginUser(c *gin.Context) {
+func (u *userHandler)LoginUser(c *gin.Context) {
 	checkAuth := new(model.Login)
 	if err := c.Bind(checkAuth); err != nil {
 		c.JSON(http.StatusBadRequest, model.Response{
@@ -107,19 +106,24 @@ func (u *userHandler) LoginUser(c *gin.Context) {
 		"expiry":   user.Expired,
 	}
 
-	helper.JSONResponse(c, 200, returnData)
+	resp := model.Response{
+		Message: returnData,
+		Status: "success",
+	}
+
+	helper.JSONResponse(c, 200, resp)
 }
 
 func (u *userHandler) DeleteUser(c *gin.Context) {
 	id := c.Param("id")
 
-	err := u.UserRepository.DeleteUserDb(id)
+	message, err := u.UserRepository.DeleteUserDb(id)
 	if err != nil {
-		helper.JSONResponse(c, 400, "there is something wrong")
+		helper.JSONResponse(c, 400, message)
 		return
 	}
 
-	helper.JSONResponse(c, 200, "success deleting user!")
+	helper.JSONResponse(c, 200, message)
 }
 
 func (u *userHandler) UpdateUser(c *gin.Context) {
@@ -147,30 +151,27 @@ func (u *userHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	helper.JSONResponse(c, 200, fmt.Sprintf("success updating user %s", updateUser.UserName))
+	resp := model.Response{
+		Message: fmt.Sprintf("success updating user %s", updateUser.UserName),
+		Status: "success",
+	}
+
+	helper.JSONResponse(c, 200, resp)
 }
 
 func (u *userHandler) GetAllUser(c *gin.Context) {
 	search := c.Query("search")
 	page := c.Query("page")
-	pageInt, err := strconv.Atoi(page)
-	if err != nil {
-		log.Println("get all user err:", err)
-		helper.JSONResponse(c, 400, "wrong request")
-		return
-	}
+	pageInt, _ := strconv.Atoi(page)
 	pageSize := c.Query("pageSize")
-	pageSizeInt, err := strconv.Atoi(pageSize)
-	if err != nil {
-		log.Println("get all user err:", err)
-		helper.JSONResponse(c, 400, "wrong request")
-		return
-	}
+	pageSizeInt, _ := strconv.Atoi(pageSize)
+
+
 
 	searchGetAllUser := model.SearchUser{
-		Page: pageInt,
+		Page:     pageInt,
 		PageSize: pageSizeInt,
-		Search : search,
+		Search:   search,
 	}
 
 	getAllUser := u.UserRepository.GetAllUserDb(searchGetAllUser)

@@ -13,10 +13,10 @@ func UserRoutes(r *gin.RouterGroup) {
 	h := handlers.HandlerUser(userRepository)
 
 	r.POST("/user", h.CreateUser)
-	r.DELETE("/user/:id", middleware.Auth(h.DeleteUser))
+	r.DELETE("/user/:id", middleware.Auth(middleware.IsAdmin(h.DeleteUser)))
 	r.POST("/loginUser", h.LoginUser)
 	r.PUT("/user", middleware.Auth(h.UpdateUser))
-	r.GET("/user", middleware.Auth(h.GetAllUser))
+	r.GET("/userAll", middleware.Auth(h.GetAllUser))
 	// e.GET("/user")
 	// e.POST("/deleteUser/:id", middleware.Auth(h.FindUsersPeer))
 }
